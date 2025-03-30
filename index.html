@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フォートナイト風RPG</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Burbank+Big+Condensed:wght@700&display=swap');
+
+        body {
+            font-family: 'Burbank Big Condensed', sans-serif;
+            text-align: center;
+            background: linear-gradient(180deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            font-size: 20px;
+        }
+
+        .section {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            font-size: 18px;
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+        }
+
+        .primary { background: #007bff; color: white; }
+        .danger { background: #ff4d4d; color: white; }
+        .success { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="stats">💰 ゴールド: <span id="gold">0</span></div>
+            <div class="stats">⚔️ 攻撃力: <span id="attack">1</span></div>
+            <div class="stats">🔥 自動攻撃: <span id="autoAttack">0</span></div>
+            <div class="stats">⭐ レベル: <span id="level">1</span> (XP: <span id="xp">0</span>/<span id="xpNeeded">10</span>)</div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 バトル</h2>
+            <p id="enemy">敵のHP: <span id="enemyHp">10</span></p>
+            <button class="button primary" onclick="attackEnemy()">攻撃</button>
+            <button class="button success" onclick="upgradeAttack()">攻撃力強化 (10G)</button>
+            <button class="button success" onclick="buyAutoAttack()">自動攻撃購入 (50G)</button>
+            <button class="button danger" onclick="fightBoss()">ボス戦挑戦</button>
+        </div>
+
+        <div class="section">
+            <h2>🛒 デイリーショップ</h2>
+            <div id="shop"></div>
+        </div>
+
+        <div class="section">
+            <h2>📜 デイリークエスト</h2>
+            <p id="quest">クエスト: -</p>
+            <button class="button success" onclick="checkQuest()">クエスト達成</button>
+        </div>
+    </div>
+
+    <script>
+        let gold = parseInt(localStorage.getItem("gold") || 0);
+        let attackPower = parseInt(localStorage.getItem("attackPower") || 1);
+        let autoAttackPower = parseInt(localStorage.getItem("autoAttackPower") || 0);
+        let level = parseInt(localStorage.getItem("level") || 1);
+        let xp = parseInt(localStorage.getItem("xp") || 0);
+        let xpNeeded = level * 10;
+        let enemyHp = 10;
+        let enemyKillCount = parseInt(localStorage.getItem("enemyKillCount") || 0);
+        let dailyQuest = JSON.parse(localStorage.getItem("dailyQuest")) || { type: "", goal: 0, progress: 0, reward: 0 };
+
+        let shopItems = [
+            { name: "攻撃力 +1", price: 20, effect: () => { attackPower += 1; } },
+            { name: "自動攻撃 +1", price: 50, effect: () => { autoAttackPower += 1; } },
+            { name: "XPブースト (2倍)", price: 100, effect: () => { xp += 10; checkLevelUp(); } }
+        ];
+
+        function updateUI() {
+            document.getElementById("gold").innerText = gold;
+            document.getElementById("attack").innerText = attackPower;
+            document.getElementById("autoAttack").innerText = autoAttackPower;
+            document.getElementById("level").innerText = level;
+            document.getElementById("xp").innerText = xp;
+            document.getElementById("xpNeeded").innerText = xpNeeded;
+            document.getElementById("enemyHp").innerText = enemyHp;
+            document.getElementById("quest").innerText = `クエスト: ${dailyQuest.type} (${dailyQuest.progress}/${dailyQuest.goal}) 報酬: ${dailyQuest.reward}G`;
+        }
+
+        function attackEnemy() {
+            enemyHp -= attackPower;
+            if (enemyHp <= 0) {
+                gold += 5;
+                xp += 2;
+                enemyHp = 10;
+                enemyKillCount++;
+                dailyQuest.progress++;
+                checkLevelUp();
+                saveData();
+            }
+            updateUI();
+        }
+
+        function checkLevelUp() {
+            while (xp >= xpNeeded) {
+                xp -= xpNeeded;
+                level++;
+                xpNeeded = level * 10;
+                attackPower += 1;
+                alert(`レベルアップ！ レベル ${level} になった！攻撃力 +1`);
+            }
+        }
+
+        function upgradeAttack() {
+            if (gold >= 10) {
+                gold -= 10;
+                attackPower += 1;
+                saveData();
+                updateUI();
+            } else {
+                alert("ゴールドが足りません！");
+            }
+        }
+
+        function buyAutoAttack() {
+            if (gold >= 50) {
+                gold -= 50;
+                autoAttackPower += 1;
+                saveData();
+                updateUI();
+            } else {
+                alert("ゴールドが足りません！");
+            }
+        }
+
+        function autoAttack() {
+            if (autoAttackPower > 0) {
+                attackEnemy();
+            }
+        }
+        setInterval(autoAttack, 1000);
+
+        function displayShop() {
+            let shopElement = document.getElementById("shop");
+            shopElement.innerHTML = "";
+            shopItems.forEach((item, index) => {
+                let itemButton = document.createElement("button");
+                itemButton.className = "button success";
+                itemButton.innerText = `${item.name} (${item.price}G)`;
+                itemButton.onclick = () => buyItem(index);
+                shopElement.appendChild(itemButton);
+            });
+        }
+
+        function buyItem(index) {
+            let item = shopItems[index];
+            if (gold >= item.price) {
+                gold -= item.price;
+                item.effect();
+                saveData();
+                updateUI();
+                alert(`${item.name} を購入しました！`);
+            } else {
+                alert("ゴールドが足りません！");
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem("gold", gold);
+            localStorage.setItem("attackPower", attackPower);
+            localStorage.setItem("autoAttackPower", autoAttackPower);
+            localStorage.setItem("level", level);
+            localStorage.setItem("xp", xp);
+        }
+
+        updateUI();
+        displayShop();
+    </script>
+</body>
+</html>
